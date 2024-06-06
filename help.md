@@ -10,12 +10,44 @@ Before I describe the errors and the code procuding them, [here is the result](h
 
 When I attempt to segment 3D images using Omnipose's `plant_omni` 3D model, I get a tensor overflow error. Here is the model initialization code:
 ```python
+from cellpose_omni import models
 
+# need to provide omni = true or else the mode will net_avg
+# omni doesnt use net_avg
+# if omni is false, we will need net_avg and use 4 models for that
+
+model = models.CellposeModel(gpu=True,
+                             model_type="plant_omni",
+                             net_avg=False,
+                             dim=3, # model was trained on 2D slices
+                             nchan=1,
+                             diam_mean=40,
+                             nclasses=3) # flow + dist + boundary
 ```
 
 Here is the call to eval which is producing the error:
 ```python
+torch.cuda.empty_cache()
 
+masks_om, flows_om = [[]]*nimg,[[]]*nimg
+
+for k in range(nimg):
+    # imgs[k] = torch.from_numpy(imgs[k]).to(device) # attempt to try and fix the tensor overload bug
+    masks_om[k], flows_om[k], _ = model.eval(imgs[k],
+                                             channels=None,
+                                             rescale=None,
+                                             mask_threshold=-5,
+                                             net_avg=False,
+                                             transparency=True,
+                                             flow_threshold=0,
+                                             omni=True,
+                                             resample=False,
+                                             verbose=1,
+                                             diam_threshold=55,
+                                             cluster=False,
+                                             tile=True,
+                                             compute_masks=1,
+                                             flow_factor=10) 
 ```
 
 You can see the [full code here]() but it is the same as what is on the Omnipose documentation with the exception of the file path.
