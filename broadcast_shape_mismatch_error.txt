@@ -1,0 +1,128 @@
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+Cell In[18], line 16
+     12 flow_factor=10
+     14 nuclei = nuclei[np.newaxis, ...]
+---> 16 masks_cp, flows_cp, _ = model.eval(nuclei,
+     17                                    channels=chans,
+     18                                    rescale=rescale,
+     19                                    mask_threshold=mask_threshold,
+     20                                    net_avg=net_avg,
+     21                                    transparency=False, 
+     22                                    flow_threshold=flow_threshold,
+     23                                    verbose=verbose, 
+     24                                    tile=True,
+     25                                    compute_masks=compute_masks, 
+     26                                    do_3D=True, 
+     27                                    omni=omni,
+     28                                    flow_factor=flow_factor)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/models.py:728, in CellposeModel.eval(self, x, batch_size, channels, channel_axis, z_axis, normalize, invert, rescale, diameter, do_3D, anisotropy, net_avg, augment, tile, tile_overlap, resample, interp, cluster, boundary_seg, affinity_seg, flow_threshold, mask_threshold, diam_threshold, niter, cellprob_threshold, dist_threshold, flow_factor, compute_masks, min_size, stitch_threshold, progress, omni, calc_trace, verbose, transparency, loop_run, model_loaded)
+    725 rescale = self.diam_mean / diameter if (rescale is None and (diameter is not None and diameter>0)) else rescale
+    726 rescale = 1.0 if rescale is None else rescale
+--> 728 masks, styles, dP, cellprob, p, bd, tr, affinity, bounds  = self._run_cp(x, 
+    729                                                                           compute_masks=compute_masks,
+    730                                                                           normalize=normalize,
+    731                                                                           invert=invert,
+    732                                                                           rescale=rescale, 
+    733                                                                           net_avg=net_avg, 
+    734                                                                           resample=resample,
+    735                                                                           augment=augment, 
+    736                                                                           tile=tile, 
+    737                                                                           tile_overlap=tile_overlap,
+    738                                                                           mask_threshold=mask_threshold, 
+    739                                                                           diam_threshold=diam_threshold,
+    740                                                                           flow_threshold=flow_threshold,
+    741                                                                           niter=niter,
+    742                                                                           flow_factor=flow_factor,
+    743                                                                           interp=interp,
+    744                                                                           cluster=cluster,
+    745                                                                           boundary_seg=boundary_seg,  
+    746                                                                           affinity_seg=affinity_seg,
+    747                                                                           min_size=min_size, 
+    748                                                                           do_3D=do_3D, 
+    749                                                                           anisotropy=anisotropy,
+    750                                                                           stitch_threshold=stitch_threshold,
+    751                                                                           omni=omni,
+    752                                                                           calc_trace=calc_trace,
+    753                                                                           verbose=verbose)
+    755 # the flow list stores: 
+    756 # (1) RGB representation of flows
+    757 # (2) flow components
+   (...)
+    764 
+    765 # 5-8 were added in Omnipose, hence the unusual placement in the list. 
+    767 flows = [plot.dx_to_circ(dP,transparency=transparency) 
+    768          if self.nclasses>1 else np.zeros(cellprob.shape+(3+transparency,),np.uint8),
+    769          dP, cellprob, p, bd, tr, affinity, bounds]
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/models.py:915, in CellposeModel._run_cp(self, x, compute_masks, normalize, invert, rescale, net_avg, resample, augment, tile, tile_overlap, mask_threshold, diam_threshold, flow_threshold, niter, flow_factor, min_size, interp, cluster, boundary_seg, affinity_seg, anisotropy, do_3D, stitch_threshold, omni, calc_trace, verbose)
+    912         affinity = []
+    913     else:
+    914         # run omnipose compute_masks
+--> 915         masks, bounds, p, tr, affinity = omnipose.core.compute_masks(dP, cellprob, bd,
+    916                                                                    do_3D=do_3D,
+    917                                                                    niter=niter,
+    918                                                                    resize=None,
+    919                                                                    min_size=min_size, 
+    920                                                                    mask_threshold=mask_threshold,  
+    921                                                                    diam_threshold=diam_threshold,
+    922                                                                    flow_threshold=flow_threshold, 
+    923                                                                    flow_factor=flow_factor,      
+    924                                                                    interp=interp, 
+    925                                                                    cluster=cluster,
+    926                                                                    boundary_seg=boundary_seg,
+    927                                                                    affinity_seg=affinity_seg,
+    928                                                                    calc_trace=calc_trace, 
+    929                                                                    verbose=verbose,
+    930                                                                    use_gpu=self.gpu, 
+    931                                                                    device=self.device, 
+    932                                                                    nclasses=self.nclasses, 
+    933                                                                    dim=self.dim)
+    934 else:
+    935     masks, bounds, p, tr, affinity = [], [], [], [], []
+
+File ~/envs/omnipose/lib/python3.10/site-packages/omnipose/core.py:1116, in compute_masks(dP, dist, bd, p, inds, niter, rescale, resize, mask_threshold, diam_threshold, flow_threshold, interp, cluster, boundary_seg, affinity_seg, do_3D, min_size, hole_size, omni, calc_trace, verbose, use_gpu, device, nclasses, dim, eps, hdbscan, flow_factor, debug, override)
+   1112 else:
+   1113     dP_ = dP * iscell / 5.
+-> 1116 dP_pad = np.pad(dP_,pad_seq)
+   1117 dt_pad = np.pad(dist,pad)
+   1118 bd_pad = np.pad(bd,pad)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/numpy/lib/arraypad.py:748, in pad(array, pad_width, mode, **kwargs)
+    745     raise TypeError('`pad_width` must be of integral type.')
+    747 # Broadcast to shape (array.ndim, 2)
+--> 748 pad_width = _as_pairs(pad_width, array.ndim, as_index=True)
+    750 if callable(mode):
+    751     # Old behavior: Use user-supplied function with np.apply_along_axis
+    752     function = mode
+
+File ~/envs/omnipose/lib/python3.10/site-packages/numpy/lib/arraypad.py:522, in _as_pairs(x, ndim, as_index)
+    518     raise ValueError("index can't contain negative values")
+    520 # Converting the array with `tolist` seems to improve performance
+    521 # when iterating and indexing the result (see usage in `pad`)
+--> 522 return np.broadcast_to(x, (ndim, 2)).tolist()
+
+File ~/envs/omnipose/lib/python3.10/site-packages/numpy/lib/stride_tricks.py:413, in broadcast_to(array, shape, subok)
+    367 @array_function_dispatch(_broadcast_to_dispatcher, module='numpy')
+    368 def broadcast_to(array, shape, subok=False):
+    369     """Broadcast an array to a new shape.
+    370 
+    371     Parameters
+   (...)
+    411            [1, 2, 3]])
+    412     """
+--> 413     return _broadcast_to(array, shape, subok=subok, readonly=True)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/numpy/lib/stride_tricks.py:349, in _broadcast_to(array, shape, subok, readonly)
+    346     raise ValueError('all elements of broadcast shape must be non-'
+    347                      'negative')
+    348 extras = []
+--> 349 it = np.nditer(
+    350     (array,), flags=['multi_index', 'refs_ok', 'zerosize_ok'] + extras,
+    351     op_flags=['readonly'], itershape=shape, order='C')
+    352 with it:
+    353     # never really has writebackifcopy semantics
+    354     broadcast = it.itviews[0]
+
+ValueError: operands could not be broadcast together with remapped shapes [original->remapped]: (3,2)  and requested shape (4,2)
