@@ -50,7 +50,7 @@ for k in range(nimg):
                                              flow_factor=10) 
 ```
 
-You can see the [full code here]() but it is the same as what is on the Omnipose documentation with the exception of the file path.
+You can see the [full code here](https://github.com/mrdandelion6/omnipose_errors/blob/main/tensor_overflow_error/tensor_error_code.ipynb) but it is the same as what is on the Omnipose documentation with the exception of the file path.
 
 Here is part of the error message I am getting from the above code:
 ```
