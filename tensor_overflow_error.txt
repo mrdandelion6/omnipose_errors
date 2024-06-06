@@ -1,0 +1,177 @@
+RuntimeError                              Traceback (most recent call last)
+Cell In[22], line 1
+----> 1 masks, flows, _ = model.eval(target,
+      2                                channels=None,
+      3                                rescale=None,
+      4                                mask_threshold=-5,
+      5                                net_avg=False,
+      6                                transparency=True,
+      7                                flow_threshold=0,
+      8                                omni=True,
+      9                                resample=False,
+     10                                verbose=1,
+     11                                diam_threshold=55,
+     12                                cluster=False,
+     13                                tile=True,
+     14                                compute_masks=1,
+     15                                flow_factor=10) 
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/models.py:724, in CellposeModel.eval(self, x, batch_size, channels, channel_axis, z_axis, normalize, invert, rescale, diameter, do_3D, anisotropy, net_avg, augment, tile, tile_overlap, resample, interp, cluster, boundary_seg, affinity_seg, flow_threshold, mask_threshold, diam_threshold, niter, cellprob_threshold, dist_threshold, flow_factor, compute_masks, min_size, stitch_threshold, progress, omni, calc_trace, verbose, transparency, loop_run, model_loaded)
+    721 rescale = self.diam_mean / diameter if (rescale is None and (diameter is not None and diameter>0)) else rescale
+    722 rescale = 1.0 if rescale is None else rescale
+--> 724 masks, styles, dP, cellprob, p, bd, tr, affinity, bounds  = self._run_cp(x, 
+    725                                                                           compute_masks=compute_masks,
+    726                                                                           normalize=normalize,
+    727                                                                           invert=invert,
+    728                                                                           rescale=rescale, 
+    729                                                                           net_avg=net_avg, 
+    730                                                                           resample=resample,
+    731                                                                           augment=augment, 
+    732                                                                           tile=tile, 
+    733                                                                           tile_overlap=tile_overlap,
+    734                                                                           mask_threshold=mask_threshold, 
+    735                                                                           diam_threshold=diam_threshold,
+    736                                                                           flow_threshold=flow_threshold,
+    737                                                                           niter=niter,
+    738                                                                           flow_factor=flow_factor,
+    739                                                                           interp=interp,
+    740                                                                           cluster=cluster,
+    741                                                                           boundary_seg=boundary_seg,  
+    742                                                                           affinity_seg=affinity_seg,
+    743                                                                           min_size=min_size, 
+    744                                                                           do_3D=do_3D, 
+    745                                                                           anisotropy=anisotropy,
+    746                                                                           stitch_threshold=stitch_threshold,
+    747                                                                           omni=omni,
+    748                                                                           calc_trace=calc_trace,
+    749                                                                           verbose=verbose)
+    751 # the flow list stores: 
+    752 # (1) RGB representation of flows
+    753 # (2) flow components
+   (...)
+    760 
+    761 # 5-8 were added in Omnipose, hence the unusual placement in the list. 
+    763 flows = [plot.dx_to_circ(dP,transparency=transparency) 
+    764          if self.nclasses>1 else np.zeros(cellprob.shape+(3+transparency,),np.uint8),
+    765          dP, cellprob, p, bd, tr, affinity, bounds]
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/models.py:844, in CellposeModel._run_cp(self, x, compute_masks, normalize, invert, rescale, net_avg, resample, augment, tile, tile_overlap, mask_threshold, diam_threshold, flow_threshold, niter, flow_factor, min_size, interp, cluster, boundary_seg, affinity_seg, anisotropy, do_3D, stitch_threshold, omni, calc_trace, verbose)
+    841     else:
+    842         img = zoom(img,rescale,order=1)
+--> 844 yf, style = self._run_nets(img, net_avg=net_avg,
+    845                            augment=augment, tile=tile,
+    846                            tile_overlap=tile_overlap)
+    847 # unpadding 
+    848 yf = yf[unpad+(Ellipsis,)]
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/core.py:408, in UnetModel._run_nets(self, img, net_avg, augment, tile, tile_overlap, bsize, return_conv, progress)
+    372 """ run network (if more than one, loop over networks and average results
+    373 
+    374 Parameters
+   (...)
+    405 
+    406 """
+    407 if isinstance(self.pretrained_model, str) or not net_avg:  
+--> 408     y, style = self._run_net(img, augment=augment, tile=tile, tile_overlap=tile_overlap,
+    409                              bsize=bsize, return_conv=return_conv)
+    410 else:  
+    411     for j in range(len(self.pretrained_model)):
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/core.py:504, in UnetModel._run_net(self, imgs, augment, tile, tile_overlap, bsize, return_conv)
+    502 # run network
+    503 if tile or augment or (imgs.ndim==4 and self.dim==2): ## need to work out the tiling in ND... <<<<<
+--> 504     y, style = self._run_tiled(imgs, augment=augment, bsize=bsize, 
+    505                               tile_overlap=tile_overlap, 
+    506                               return_conv=return_conv)
+    507 else:
+    509     imgs = np.expand_dims(imgs, axis=0)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/core.py:613, in UnetModel._run_tiled(self, imgi, augment, bsize, tile_overlap, return_conv)
+    611 for k in range(niter):
+    612     irange = np.arange(batch_size*k, min(IMG.shape[0], batch_size*k+batch_size))
+--> 613     y0, style = self.network(IMG[irange], return_conv=return_conv)
+    614     arg = (len(irange),)+y0.shape[-(self.dim+1):]
+    615     y[irange] = y0.reshape(arg)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/core.py:356, in UnetModel.network(self, x, return_conv)
+    354         self.net = mkldnn_utils.to_mkldnn(self.net)
+    355     with torch.no_grad():
+--> 356         y, style = self.net(X)
+    357 else:
+    358     y, style = self.net(X)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/modules/module.py:1501, in Module._call_impl(self, *args, **kwargs)
+   1496 # If we don't have any hooks, we want to skip the rest of the logic in
+   1497 # this function, and just call forward.
+   1498 if not (self._backward_hooks or self._backward_pre_hooks or self._forward_hooks or self._forward_pre_hooks
+   1499         or _global_backward_pre_hooks or _global_backward_hooks
+   1500         or _global_forward_hooks or _global_forward_pre_hooks):
+-> 1501     return forward_call(*args, **kwargs)
+   1502 # Do not call functions when jit is used
+   1503 full_backward_hooks, non_full_backward_hooks = [], []
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/parallel/data_parallel.py:169, in DataParallel.forward(self, *inputs, **kwargs)
+    166     kwargs = ({},)
+    168 if len(self.device_ids) == 1:
+--> 169     return self.module(*inputs[0], **kwargs[0])
+    170 replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+    171 outputs = self.parallel_apply(replicas, inputs, kwargs)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/modules/module.py:1501, in Module._call_impl(self, *args, **kwargs)
+   1496 # If we don't have any hooks, we want to skip the rest of the logic in
+   1497 # this function, and just call forward.
+   1498 if not (self._backward_hooks or self._backward_pre_hooks or self._forward_hooks or self._forward_pre_hooks
+   1499         or _global_backward_pre_hooks or _global_backward_hooks
+   1500         or _global_forward_hooks or _global_forward_pre_hooks):
+-> 1501     return forward_call(*args, **kwargs)
+   1502 # Do not call functions when jit is used
+   1503 full_backward_hooks, non_full_backward_hooks = [], []
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/resnet_torch.py:285, in CPnet.forward(self, data)
+    282 if not self.style_on:
+    283     style = style * 0
+--> 285 T0 = self.upsample(style, T0, self.mkldnn)
+    286 # T0 = cp.checkpoint(self.upsample, style, T0, self.mkldnn) #not working
+    288 if self.do_dropout:
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/modules/module.py:1501, in Module._call_impl(self, *args, **kwargs)
+   1496 # If we don't have any hooks, we want to skip the rest of the logic in
+   1497 # this function, and just call forward.
+   1498 if not (self._backward_hooks or self._backward_pre_hooks or self._forward_hooks or self._forward_pre_hooks
+   1499         or _global_backward_pre_hooks or _global_backward_hooks
+   1500         or _global_forward_hooks or _global_forward_pre_hooks):
+-> 1501     return forward_call(*args, **kwargs)
+   1502 # Do not call functions when jit is used
+   1503 full_backward_hooks, non_full_backward_hooks = [], []
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/resnet_torch.py:229, in upsample.forward(self, style, xd, mkldnn)
+    226     x = self.upsampling(x.to_dense()).to_mkldnn()
+    227 else:
+    228     # x = self.upsampling(x)
+--> 229     x = cp.checkpoint(self.upsampling,x) if self.checkpoint else self.upsampling(x) # doesn't do much 
+    231 # x = self.up[n](x, xd[n], style, mkldnn=mkldnn)
+    232 x =  cp.checkpoint(self.up[n], x, xd[n], style, mkldnn) if self.checkpoint else self.up[n](x, xd[n], style, mkldnn=mkldnn)# ok this one saves a ton of memory,2GB 
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/modules/module.py:1501, in Module._call_impl(self, *args, **kwargs)
+   1496 # If we don't have any hooks, we want to skip the rest of the logic in
+   1497 # this function, and just call forward.
+   1498 if not (self._backward_hooks or self._backward_pre_hooks or self._forward_hooks or self._forward_pre_hooks
+   1499         or _global_backward_pre_hooks or _global_backward_hooks
+   1500         or _global_forward_hooks or _global_forward_pre_hooks):
+-> 1501     return forward_call(*args, **kwargs)
+   1502 # Do not call functions when jit is used
+   1503 full_backward_hooks, non_full_backward_hooks = [], []
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/modules/upsampling.py:156, in Upsample.forward(self, input)
+    155 def forward(self, input: Tensor) -> Tensor:
+--> 156     return F.interpolate(input, self.size, self.scale_factor, self.mode, self.align_corners,
+    157                          recompute_scale_factor=self.recompute_scale_factor)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/functional.py:3933, in interpolate(input, size, scale_factor, mode, align_corners, recompute_scale_factor, antialias)
+   3931     return torch._C._nn.upsample_nearest2d(input, output_size, scale_factors)
+   3932 if input.dim() == 5 and mode == "nearest":
+-> 3933     return torch._C._nn.upsample_nearest3d(input, output_size, scale_factors)
+   3935 if input.dim() == 3 and mode == "nearest-exact":
+   3936     return torch._C._nn._upsample_nearest_exact1d(input, output_size, scale_factors)
+
+RuntimeError: Expected output.numel() <= std::numeric_limits<int32_t>::max() to be true, but got false.  (Could this error message be improved?  If so, please report an enhancement request to PyTorch.)
