@@ -1,5 +1,3 @@
-[faisal6@narval2 ~]$ actenv "omnipose"
-(omnipose) [faisal6@narval2 ~]$ pip list
 Package                   Version
 ------------------------- -------------------------
 anyio                     4.4.0
