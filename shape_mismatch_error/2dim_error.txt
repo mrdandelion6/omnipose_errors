@@ -1,0 +1,49 @@
+---------------------------------------------------------------------------
+RuntimeError                              Traceback (most recent call last)
+Cell In[6], line 7
+      4 model_name = 'nuclei'
+      6 use_GPU = core.use_gpu()
+----> 7 model = models.CellposeModel(gpu=use_GPU, 
+      8                              model_type=model_name, 
+      9                              net_avg=False, 
+     10                              diam_mean=0, 
+     11                              nclasses=2, 
+     12                              dim=2, 
+     13                              nchan=2)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/models.py:482, in CellposeModel.__init__(self, gpu, pretrained_model, model_type, net_avg, torch, diam_mean, device, residual_on, style_on, concatenation, nchan, nclasses, dim, omni, checkpoint, dropout, kernel_size)
+    469 self.pretrained_model = pretrained_model
+    471 if self.pretrained_model and len(self.pretrained_model)==1:
+    472 
+    473     
+   (...)
+    479     # if self.torch and gpu:
+    480     #     self.net = nn.DataParallel(self.net)
+--> 482     self.net.load_model(self.pretrained_model[0], cpu=(not self.gpu))
+    485     if not self.torch:
+    486         self.net.collect_params().grad_req = 'null'
+
+File ~/envs/omnipose/lib/python3.10/site-packages/cellpose_omni/resnet_torch.py:305, in CPnet.load_model(self, filename, cpu)
+    303 def load_model(self, filename, cpu=False):
+    304     if not cpu:
+--> 305         self.load_state_dict(torch.load(filename,map_location=torch_GPU))
+    306     else:
+    307         self.__init__(self.nbase,
+    308                       self.nout,
+    309                       self.sz,
+   (...)
+    316                       self.do_dropout,
+    317                       self.kernel_size)
+
+File ~/envs/omnipose/lib/python3.10/site-packages/torch/nn/modules/module.py:2152, in Module.load_state_dict(self, state_dict, strict, assign)
+   2147         error_msgs.insert(
+   2148             0, 'Missing key(s) in state_dict: {}. '.format(
+   2149                 ', '.join(f'"{k}"' for k in missing_keys)))
+   2151 if len(error_msgs) > 0:
+-> 2152     raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
+   2153                        self.__class__.__name__, "\n\t".join(error_msgs)))
+   2154 return _IncompatibleKeys(missing_keys, unexpected_keys)
+
+RuntimeError: Error(s) in loading state_dict for CPnet:
+	size mismatch for output.2.weight: copying a param with shape torch.Size([3, 32, 1, 1]) from checkpoint, the shape in current model is torch.Size([2, 32, 1, 1]).
+	size mismatch for output.2.bias: copying a param with shape torch.Size([3]) from checkpoint, the shape in current model is torch.Size([2]).
